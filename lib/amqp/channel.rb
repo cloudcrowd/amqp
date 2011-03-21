@@ -756,7 +756,7 @@ module AMQP
 
       qus = @queues
       @queues = AMQP::Collection.new
-      qus.each { |q| q.reset } if qus
+      qus.each { |q| q.unsubscribe; q.cancelled; q.reset } if qus
 
       prefetch(@prefetch_size) if @prefetch_size
     end
