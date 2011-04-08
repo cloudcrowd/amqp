@@ -859,7 +859,7 @@ module AMQP
       when Protocol::Queue::DeclareOk
         # We can't use queues[method.queue] because if the name would
         # be an empty string, then AMQP broker generated a random one.
-        queues = self.queues.select { |queue| queue.opts[:nowait].eql?(false) }
+        queues = self.queues.select { |queue| queue.opts[:nowait].eql?(true) }
         queue  = queues.reverse.find { |queue| queue.status.eql?(:unfinished) }
         queue.receive_status method
 

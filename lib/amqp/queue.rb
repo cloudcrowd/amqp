@@ -411,7 +411,7 @@ module AMQP
     #
     def status(opts = {}, &blk)
       return @status if opts.empty? && blk.nil?
-
+      @status = :unfinished
       @on_status = blk
       @mq.callback {
         @mq.send Protocol::Queue::Declare.new({ :queue => name,
