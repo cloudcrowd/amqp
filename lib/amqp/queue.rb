@@ -461,6 +461,9 @@ module AMQP
     end
 
     def reset
+      unsubscribe
+      cancelled
+
       @deferred_status = nil
       initialize @mq, @name, @opts
 
