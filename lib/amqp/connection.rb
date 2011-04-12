@@ -96,9 +96,11 @@ module AMQP
       @closing = true
       EM.next_tick do
         @conn.close {
-          yield if block_given?
           @conn = nil
           @closing = false
+          # yield should happens last, just in case that this thread lose execution rights to any
+          # conditiona_variable.signal that might be present in the given block
+          yield if block_given?
         }
       end
     end
