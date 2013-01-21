@@ -3,7 +3,7 @@
 module AMQP
   class Queue
     def self.add_default_options(name, opts, block)
-      { :queue => name, :nowait => block.nil? }.merge(opts)
+      { :queue => name, :nowait => (block.nil? && !name.empty?) }.merge(opts)
     end
 
     # Queues store and forward messages.  Queues can be configured in the server
@@ -66,16 +66,26 @@ module AMQP
     # method it will raise a channel or connection exception.
     #
     def initialize(mq, name, opts = {}, &block)
-      @mq = mq
-      @opts = self.class.add_default_options(name, opts, block)
+      raise ArgumentError, "queue name must not be nil. Use '' (empty string) for server-named queues." if name.nil?
+
+      @mq     = mq
+      @opts   = self.class.add_default_options(name, opts, block)
       @bindings ||= {}
-      @name = name unless name.empty?
       @status = @opts[:nowait] ? :unknown : :unfinished
+
+      if name.empty?
+        @mq.queues_awaiting_declare_ok.push(self)
+      else
+        @name = name
+      end
+
       @mq.callback {
         @mq.send Protocol::Queue::Declare.new(@opts)
       }
 
       self.callback = block
+
+      block.call(self) if @opts[:nowait] && block
     end
 
     attr_reader :name, :sync_bind
@@ -127,6 +137,9 @@ module AMQP
                                              :nowait => block.nil? }.merge(opts))
       }
       self.bind_callback = block
+
+      block.call(self) if opts[:nowait] && block
+
       self
     end
 
@@ -414,6 +427,7 @@ module AMQP
 
       @on_status = blk
       @mq.callback {
+        @mq.queues_awaiting_declare_ok.push(self)
         @mq.send Protocol::Queue::Declare.new({ :queue => name,
                                                 :passive => true }.merge(opts))
       }
